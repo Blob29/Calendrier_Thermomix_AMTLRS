@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Calendrier Commercial — Équipe</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans','Segoe UI',sans-serif;background:#0F1117;color:#E8EAF0;min-height:100vh}
+button,input,select{font-family:inherit}button{cursor:pointer}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0F1117}::-webkit-scrollbar-thumb{background:#2D3350;border-radius:2px}
+select option{background:#1A1D2E}
+
+/* Toast */
+#toast{position:fixed;top:16px;right:16px;padding:10px 20px;border-radius:8px;font-weight:600;font-size:13px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);display:none;background:#2A9D8F;color:#fff;animation:fadeIn .2s}
+#toast.err{background:#E63946}
+
+/* Setup */
+#setup-screen{position:fixed;inset:0;background:#0F1117;display:flex;align-items:center;justify-content:center;z-index:9000;padding:24px}
+.setup-card{background:#14161F;border:1px solid #1E2235;border-radius:20px;padding:36px;width:100%;max-width:500px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.setup-card h1{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px}
+.sc-sub{font-size:13px;color:#6B7280;margin-bottom:22px;line-height:1.6}
+.steps-box{background:#1A1D2E;border-radius:12px;padding:16px;margin-bottom:20px;font-size:12px;color:#A0AEC0;line-height:2}
+.steps-box a{color:#2A9D8F}.steps-box strong{color:#E8EAF0}
+.sc-fields{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+.sc-fields label{font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px}
+.sc-fields input{width:100%;background:#1A1D2E;border:1px solid #2D3350;color:#E8EAF0;border-radius:10px;padding:11px 14px;font-size:13px}
+.sc-fields input:focus{outline:none;border-color:#2A9D8F}
+.btn-go{width:100%;background:#2A9D8F;border:none;color:#fff;border-radius:10px;padding:13px;font-size:14px;font-weight:700}
+.btn-go:hover{background:#238b7e}.btn-go:disabled{background:#1A1D2E;color:#4B5563;cursor:not-allowed}
+.sc-note{font-size:11px;color:#4B5563;text-align:center;margin-top:14px}
+
+/* Header */
+header{background:linear-gradient(135deg,#1A1D2E 0%,#0F1117 100%);border-bottom:1px solid #1E2235;padding:18px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.hd-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700}
+.hd-sub{font-size:12px;color:#6B7280;margin-top:2px}
+.hd-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn-sm{background:#1E2235;border:1px solid #2D3350;color:#A0AEC0;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500}
+.btn-sm:hover{border-color:#4B5563;color:#E8EAF0}
+#saving{font-size:12px;color:#6B7280}
+
+/* Main */
+main{padding:20px 24px}
+.controls{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.month-nav{display:flex;align-items:center;gap:8px;background:#1A1D2E;border:1px solid #1E2235;border-radius:10px;padding:6px 12px}
+.month-nav button{background:none;border:none;color:#A0AEC0;font-size:20px;line-height:1;padding:0 4px}
+.month-nav button:hover{color:#fff}
+#month-label{font-family:'Space Grotesk',sans-serif;font-weight:600;min-width:150px;text-align:center;font-size:15px}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.fbtn{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid #1E2235;background:#1A1D2E;color:#A0AEC0;display:flex;align-items:center;gap:5px}
+.fbtn:hover{border-color:#4B5563;color:#E8EAF0}.fbtn.active{color:#fff}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+/* Calendar */
+.day-headers{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.dh{text-align:center;padding:6px 0;font-size:11px;font-weight:600;color:#4B5563;letter-spacing:1px;text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.day-cell{min-height:100px;border-radius:10px;padding:8px;background:#14161F;border:1px solid #1E2235;cursor:pointer;transition:border-color .15s}
+.day-cell:hover{border-color:#2D3350}
+.day-cell.is-today{background:#1A2744;border-color:#3B82F6}
+.day-cell.is-wknd{background:#131520}
+.day-cell.is-empty{background:transparent!important;border:none!important;cursor:default!important;pointer-events:none}
+.dn-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.dn{font-size:13px;font-weight:500;color:#9CA3AF}
+.is-today .dn{color:#3B82F6;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.is-wknd .dn{color:#4B5563}
+.dc{font-size:10px;color:#6B7280;font-weight:600}
+.epill{display:flex;align-items:center;gap:4px;border-radius:0 4px 4px 0;padding:2px 5px;font-size:10px;color:#E8EAF0;overflow:hidden;white-space:nowrap;margin-bottom:2px;cursor:pointer}
+.epill:hover{filter:brightness(1.3)}
+.eavatar{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;flex-shrink:0}
+.elabel{overflow:hidden;text-overflow:ellipsis}
+.emore{font-size:10px;color:#6B7280;padding-left:4px}
+
+/* Member view */
+#member-view{display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.mcard{background:#14161F;border:1px solid #1E2235;border-radius:14px;overflow:hidden}
+.mcard-head{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.mavatar-wrap{position:relative;flex-shrink:0}
+.mavatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff}
+.crown-icon{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:15px;line-height:1}
+.mname{font-weight:600;font-size:15px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.leader-badge{font-size:10px;background:#F4A26122;color:#F4A261;border:1px solid #F4A26144;border-radius:4px;padding:1px 6px;font-weight:600}
+.mcount{font-size:12px;color:#6B7280}
+.mcard-body{padding:14px;max-height:260px;overflow-y:auto}
+.mday-label{font-size:11px;color:#6B7280;font-weight:600;margin-bottom:4px;margin-top:8px}
+.mday-label:first-child{margin-top:0}
+.mevent-row{border-radius:0 6px 6px 0;padding:6px 10px;margin-bottom:4px;font-size:12px;background:#1A1D2E}
+.no-act{color:#4B5563;font-size:12px;text-align:center;padding:20px 0}
+
+/* Loading */
+#loading{text-align:center;padding:60px;color:#6B7280;font-size:14px;display:none}
+
+/* Overlay / Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:24px;overflow-y:auto}
+.overlay.open{display:flex}
+.modal{background:#14161F;border:1px solid #1E2235;border-radius:18px;padding:28px;width:100%;max-width:440px;box-shadow:0 25px 60px rgba(0,0,0,.6);margin:auto}
+.modal h2{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:#6B7280;margin-bottom:20px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.fgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mbtn{border-radius:8px;padding:8px 4px;font-size:11px;font-weight:600;color:#fff;border:1px solid #2D3350;background:#1A1D2E;text-align:center;transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsel,.finput{width:100%;background:#1A1D2E;border:1px solid #2D3350;color:#E8EAF0;border-radius:8px;padding:10px 12px;font-size:13px}
+.fsel:focus,.finput:focus{outline:none;border-color:#2A9D8F}
+.mactions{display:flex;gap:10px;margin-top:4px}
+.bdel{flex:1;background:#2D1515;border:1px solid #E63946;color:#E63946;border-radius:10px;padding:11px;font-size:13px;font-weight:600}
+.bdel:hover{background:#3d1a1a}
+.bcan{flex:1;background:#1A1D2E;border:1px solid #2D3350;color:#A0AEC0;border-radius:10px;padding:11px;font-size:13px;font-weight:600}
+.bsave{flex:2;background:#2A9D8F;border:none;color:#fff;border-radius:10px;padding:11px;font-size:13px;font-weight:700}
+.bsave:hover{background:#238b7e}.bsave:disabled{background:#1A1D2E;color:#4B5563;cursor:not-allowed}
+
+/* Settings modal */
+.modal.wide{max-width:540px}
+.stabs{display:flex;gap:4px;margin-bottom:20px;background:#1A1D2E;border-radius:10px;padding:4px}
+.stab{flex:1;padding:8px;border-radius:8px;border:none;background:transparent;color:#6B7280;font-size:13px;font-weight:600;transition:all .15s}
+.stab.active{background:#14161F;color:#E8EAF0;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.stab:hover{color:#E8EAF0}
+
+/* Shared row style */
+.list-row{display:flex;align-items:center;gap:10px;background:#1A1D2E;border-radius:10px;padding:10px 14px;margin-bottom:8px}
+.row-avatar-wrap{position:relative;flex-shrink:0}
+.row-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.row-crown{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:12px;line-height:1}
+.row-info{flex:1;min-width:0}
+.row-name{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.row-role{font-size:11px;color:#6B7280}
+.row-label{font-size:13px;color:#E8EAF0;flex:1}
+.row-btns{display:flex;gap:5px;flex-shrink:0}
+.tbtn{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:all .15s}
+.tbtn.promote{background:#F4A26115;color:#F4A261;border:1px solid #F4A26133}
+.tbtn.promote:hover{background:#F4A26125}
+.tbtn.demote{background:#1A1D2E;color:#6B7280;border:1px solid #2D3350}
+.tbtn.demote:hover{background:#252840;color:#A0AEC0}
+.tbtn.remove{background:#2D151510;color:#E63946;border:1px solid #E6394633}
+.tbtn.remove:hover{background:#2D1515}
+.tbtn.edit{background:#1A2744;color:#3B82F6;border:1px solid #1D3557}
+.tbtn.edit:hover{background:#1D3557}
+.tbtn.confirm{background:#14261F;color:#2A9D8F;border:1px solid #2A9D8F44}
+.tbtn.confirm:hover{background:#1a3328}
+.tbtn.discard{background:#1A1D2E;color:#6B7280;border:1px solid #2D3350}
+
+.add-row{display:flex;gap:8px;margin-top:14px}
+.add-row input{flex:1;background:#1A1D2E;border:1px solid #2D3350;color:#E8EAF0;border-radius:8px;padding:10px 12px;font-size:13px}
+.add-row input:focus{outline:none;border-color:#2A9D8F}
+.btn-add{background:#2A9D8F;border:none;color:#fff;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700}
+.btn-add:hover{background:#238b7e}.btn-add:disabled{background:#1A1D2E;color:#4B5563;cursor:not-allowed}
+.at-edit-input{flex:1;background:#0F1117;border:1px solid #2A9D8F;color:#E8EAF0;border-radius:6px;padding:6px 10px;font-size:13px;outline:none;min-width:0}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ══ SETUP ══ -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>📊 Calendrier Commercial</h1>
+    <p class="sc-sub">Pour partager le calendrier avec votre équipe, vous avez besoin d'une clé API JSONBin.io gratuite (stockage en ligne partagé).</p>
+    <div class="steps-box">
+      <strong>Obtenir votre clé (2 minutes) :</strong><br>
+      1. Allez sur <a href="https://jsonbin.io" target="_blank">jsonbin.io</a> → Créez un compte gratuit<br>
+      2. Cliquez sur <strong>API Keys</strong> dans le menu<br>
+      3. Copiez votre <strong>Secret Key</strong> (commence par $2b$...)<br>
+      4. Collez-la ci-dessous · Partagez ce fichier HTML + le <strong>Bin ID</strong> à toute l'équipe
+    </div>
+    <div class="sc-fields">
+      <div>
+        <label>Clé API JSONBin.io (Secret Key)</label>
+        <input type="password" id="api-key-input" placeholder="$2b$10$..." oninput="checkKey()"/>
+      </div>
+      <div>
+        <label>ID du Bin <span style="color:#4B5563;font-weight:400;text-transform:none">(laisser vide pour en créer un nouveau)</span></label>
+        <input type="text" id="bin-id-input" placeholder="Facultatif — ex: 64f3a..."/>
+      </div>
+    </div>
+    <button class="btn-go" id="setup-btn" onclick="initApp()" disabled>Démarrer →</button>
+    <p class="sc-note">Votre clé est stockée uniquement dans votre navigateur, jamais partagée.</p>
+  </div>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div>
+    <div class="hd-title">📊 Calendrier Commercial</div>
+    <div class="hd-sub" id="hd-sub">Chargement...</div>
+  </div>
+  <div class="hd-actions">
+    <span id="saving"></span>
+    <button class="btn-sm" onclick="toggleView()" id="view-btn">👥 Vue équipe</button>
+    <button class="btn-sm" onclick="openSettings()">⚙ Paramètres</button>
+    <button class="btn-sm" onclick="refreshData()" title="Rafraîchir">🔄</button>
+    <button class="btn-sm" onclick="resetSetup()" style="font-size:11px;color:#4B5563">Déconnexion</button>
+  </div>
+</header>
+
+<!-- ══ MAIN ══ -->
+<main>
+  <div class="controls">
+    <div class="month-nav">
+      <button onclick="prevMonth()">‹</button>
+      <span id="month-label"></span>
+      <button onclick="nextMonth()">›</button>
+    </div>
+    <button class="btn-sm" onclick="goToday()">Aujourd'hui</button>
+    <div class="filters" id="filters"></div>
+  </div>
+  <div id="loading">Chargement...</div>
+  <div id="calendar-view">
+    <div class="day-headers">
+      <div class="dh">Lun</div><div class="dh">Mar</div><div class="dh">Mer</div>
+      <div class="dh">Jeu</div><div class="dh">Ven</div><div class="dh">Sam</div><div class="dh">Dim</div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <div id="member-view"></div>
+</main>
+
+<!-- ══ EVENT MODAL ══ -->
+<div class="overlay" id="event-modal" onclick="if(event.target===this)closeEventModal()">
+  <div class="modal">
+    <h2 id="ev-title">➕ Nouvelle activité</h2>
+    <div class="modal-sub" id="ev-date"></div>
+    <div class="fg">
+      <label>Membre</label>
+      <div class="fgrid" id="member-grid"></div>
+      <div id="sel-member-name" style="font-size:12px;color:#A0AEC0;margin-top:6px"></div>
+    </div>
+    <div class="fg">
+      <label>Type d'activité</label>
+      <select class="fsel" id="form-type"></select>
+    </div>
+    <div class="fg">
+      <label>Description</label>
+      <input class="finput" id="form-label" placeholder="Ex: Démo chez Acme Corp..." onkeydown="if(event.key==='Enter')saveEvent()"/>
+    </div>
+    <div class="fg">
+      <label>Heure</label>
+      <input class="finput" type="time" id="form-time" value="09:00" style="width:auto"/>
+    </div>
+    <div class="mactions" id="ev-actions"></div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS MODAL ══ -->
+<div class="overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal wide">
+    <h2>⚙ Paramètres</h2>
+    <div class="modal-sub">Gérez l'équipe et les types d'activités</div>
+    <div class="stabs">
+      <button class="stab active" id="tab-team-btn"  onclick="switchTab('team')">👥 Équipe</button>
+      <button class="stab"        id="tab-types-btn" onclick="switchTab('types')">🏷 Types d'activités</button>
+    </div>
+
+    <!-- Team tab -->
+    <div id="tab-team">
+      <div id="team-list"></div>
+      <div class="add-row">
+        <input id="new-member-name" placeholder="Prénom du nouveau membre..." oninput="checkNewMember()" onkeydown="if(event.key==='Enter')addMember()"/>
+        <button class="btn-add" id="add-member-btn" onclick="addMember()" disabled>+ Ajouter</button>
+      </div>
+    </div>
+
+    <!-- Types tab -->
+    <div id="tab-types" style="display:none">
+      <div id="types-list"></div>
+      <div class="add-row">
+        <input id="new-type-name" placeholder="Nouveau type d'activité..." oninput="checkNewType()" onkeydown="if(event.key==='Enter')addActivityType()"/>
+        <button class="btn-add" id="add-type-btn" onclick="addActivityType()" disabled>+ Ajouter</button>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:20px">
+      <button class="bcan" onclick="closeSettings()" style="width:auto;padding:10px 24px">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────
+const MEMBER_COLORS=["#E63946","#2A9D8F","#E9C46A","#F4A261","#7C3AED",
+  "#06B6D4","#84CC16","#EC4899","#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#A29BFE"];
+
+const DEFAULT_MEMBERS=[
+  {id:1,name:"Agence", color:"#E63946",initials:"AG",leader:false},
+  {id:2,name:"Chantal",color:"#2A9D8F",initials:"CH",leader:false},
+  {id:3,name:"Laurent",color:"#E9C46A",initials:"LA",leader:false},
+  {id:4,name:"Nancy",  color:"#F4A261",initials:"NA",leader:false},
+  {id:5,name:"Josée",  color:"#7C3AED",initials:"JO",leader:false},
+  {id:6,name:"July",   color:"#06B6D4",initials:"JU",leader:false},
+  {id:7,name:"Olivier",color:"#84CC16",initials:"OL",leader:false},
+  {id:8,name:"Mouna",  color:"#EC4899",initials:"MO",leader:false},
+];
+
+const DEFAULT_TYPES=["Rendez-vous client","Prospection","Démo produit","Négociation",
+  "Signature contrat","Formation","Réunion interne","Salon/Événement","Suivi client","Autre"];
+
+const MONTHS_FR=["Janvier","Février","Mars","Avril","Mai","Juin",
+  "Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+// ── State ──────────────────────────────────────────────
+let apiKey="",binId="";
+let events={},members=[],activityTypes=[];
+let curYear,curMonth,filterMember=0,curView="month";
+let selDay=null,editIdx=null,selMemberId=1;
+let editingTypeIdx=null,nextMemberId=9;
+const today=new Date();
+
+// ── Utilities ──────────────────────────────────────────
+const toKey=(y,m,d)=>`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+const daysInMonth=(y,m)=>new Date(y,m+1,0).getDate();
+const firstDay=(y,m)=>{const d=new Date(y,m,1).getDay();return d===0?6:d-1;};
+const getMember=id=>members.find(m=>m.id===id)||{name:"?",color:"#555",initials:"?",leader:false};
+const makeInitials=n=>{const w=n.trim().split(/\s+/);return(w.length>=2?w[0][0]+w[1][0]:n.slice(0,2)).toUpperCase();};
+const nextColor=()=>MEMBER_COLORS[members.length%MEMBER_COLORS.length];
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+function toast(msg,err=false){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className=err?"err":"";
+  t.style.display="block";
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.style.display="none",err?4000:2500);
+}
+function setSaving(on){document.getElementById("saving").textContent=on?"Sync...":"";}
+
+// ── Setup ──────────────────────────────────────────────
+function checkKey(){
+  document.getElementById("setup-btn").disabled=
+    document.getElementById("api-key-input").value.trim().length<10;
+}
+
+async function initApp(){
+  apiKey=document.getElementById("api-key-input").value.trim();
+  const inputBin=document.getElementById("bin-id-input").value.trim();
+  const btn=document.getElementById("setup-btn");
+  btn.disabled=true;btn.textContent="Connexion...";
+  try{
+    if(inputBin){
+      binId=inputBin;
+      await loadData();
+    } else {
+      const res=await fetch("https://api.jsonbin.io/v3/b",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-Master-Key":apiKey,"X-Bin-Name":"cal-commercial"},
+        body:JSON.stringify({events:{},members:DEFAULT_MEMBERS,activityTypes:DEFAULT_TYPES})
+      });
+      if(!res.ok) throw new Error("Clé API invalide ou problème réseau");
+      const d=await res.json();
+      binId=d.metadata.id;
+      events={};members=[...DEFAULT_MEMBERS];activityTypes=[...DEFAULT_TYPES];
+      toast(`✓ Bin créé ! ID à partager : ${binId}`);
+    }
+    localStorage.setItem("cal_key",apiKey);
+    localStorage.setItem("cal_bin",binId);
+    document.getElementById("setup-screen").style.display="none";
+    startApp();
+  }catch(e){
+    toast("⚠ "+e.message,true);
+    btn.disabled=false;btn.textContent="Démarrer →";
+  }
+}
+
+function resetSetup(){
+  localStorage.removeItem("cal_key");
+  localStorage.removeItem("cal_bin");
+  location.reload();
+}
+
+window.addEventListener("DOMContentLoaded",()=>{
+  const k=localStorage.getItem("cal_key");
+  const b=localStorage.getItem("cal_bin");
+  if(k&&b){
+    apiKey=k;binId=b;
+    document.getElementById("setup-screen").style.display="none";
+    document.getElementById("loading").style.display="block";
+    loadData().then(startApp).catch(()=>{
+      document.getElementById("setup-screen").style.display="flex";
+      document.getElementById("loading").style.display="none";
+    });
+  }
+});
+
+// ── JSONBin ────────────────────────────────────────────
+async function loadData(){
+  const res=await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`,{
+    headers:{"X-Master-Key":apiKey}
+  });
+  if(!res.ok) throw new Error("Impossible de charger les données");
+  const d=await res.json();
+  events        = d.record.events        || {};
+  members       = d.record.members       || DEFAULT_MEMBERS;
+  activityTypes = d.record.activityTypes || DEFAULT_TYPES;
+  nextMemberId  = Math.max(...members.map(m=>m.id),0)+1;
+}
+
+async function saveData(){
+  setSaving(true);
+  try{
+    const res=await fetch(`https://api.jsonbin.io/v3/b/${binId}`,{
+      method:"PUT",
+      headers:{"Content-Type":"application/json","X-Master-Key":apiKey},
+      body:JSON.stringify({events,members,activityTypes})
+    });
+    if(!res.ok) throw new Error("Erreur de sauvegarde");
+    toast("✓ Sauvegardé");
+  }catch(e){toast("⚠ "+e.message,true);}
+  setSaving(false);
+}
+
+async function refreshData(){
+  setSaving(true);
+  try{await loadData();render();toast("✓ Mis à jour");}
+  catch(e){toast("⚠ Erreur de rafraîchissement",true);}
+  setSaving(false);
+}
+
+// ── App start ──────────────────────────────────────────
+function startApp(){
+  curYear=today.getFullYear();curMonth=today.getMonth();
+  document.getElementById("loading").style.display="none";
+  buildFilters();buildTypeSelect();render();
+  setInterval(()=>loadData().then(()=>{render();}).catch(()=>{}),30000);
+}
+
+// ── Navigation ─────────────────────────────────────────
+function prevMonth(){if(curMonth===0){curMonth=11;curYear--;}else curMonth--;render();}
+function nextMonth(){if(curMonth===11){curMonth=0;curYear++;}else curMonth++;render();}
+function goToday(){curYear=today.getFullYear();curMonth=today.getMonth();render();}
+
+function toggleView(){
+  curView=curView==="month"?"member":"month";
+  document.getElementById("view-btn").textContent=curView==="month"?"👥 Vue équipe":"📅 Vue calendrier";
+  document.getElementById("calendar-view").style.display=curView==="month"?"block":"none";
+  document.getElementById("member-view").style.display=curView==="member"?"grid":"none";
+  render();
+}
+
+// ── Filters ────────────────────────────────────────────
+function buildFilters(){
+  const c=document.getElementById("filters");
+  const allActive=filterMember===0;
+  let html=`<button class="fbtn${allActive?" active":""}" style="${allActive?"background:#E63946;border-color:#E63946;":""}" onclick="setFilter(0)">Tous</button>`;
+  members.forEach(m=>{
+    const active=filterMember===m.id;
+    html+=`<button class="fbtn${active?" active":""}" style="${active?`background:${m.color};border-color:${m.color};`:""}" onclick="setFilter(${m.id})">
+      <span class="dot" style="background:${m.color}"></span>${esc(m.initials)}${m.leader?" 👑":""}
+    </button>`;
+  });
+  c.innerHTML=html;
+}
+function setFilter(id){filterMember=id;buildFilters();render();}
+
+// ── Type select ────────────────────────────────────────
+function buildTypeSelect(){
+  document.getElementById("form-type").innerHTML=
+    activityTypes.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join("");
+}
+
+// ── Render ─────────────────────────────────────────────
+function render(){
+  document.getElementById("month-label").textContent=`${MONTHS_FR[curMonth]} ${curYear}`;
+  updateHeader();
+  if(curView==="month") renderMonthView();
+  else renderMemberView();
+}
+
+function updateHeader(){
+  const leaders=members.filter(m=>m.leader).map(m=>m.name);
+  const lStr=leaders.length?` · Chef${leaders.length>1?"s":""} : ${leaders.join(", ")}` :"";
+  document.getElementById("hd-sub").textContent=`${members.length} membre${members.length>1?"s":""}${lStr}`;
+}
+
+function renderMonthView(){
+  const grid=document.getElementById("cal-grid");
+  grid.innerHTML="";
+  const total=daysInMonth(curYear,curMonth);
+  const fd=firstDay(curYear,curMonth);
+  const todayKey=toKey(today.getFullYear(),today.getMonth(),today.getDate());
+  const cells=[...Array(fd).fill(null),...Array.from({length:total},(_,i)=>i+1)];
+  while(cells.length%7!==0) cells.push(null);
+
+  cells.forEach((day,i)=>{
+    const cell=document.createElement("div");
+    if(!day){cell.className="day-cell is-empty";grid.appendChild(cell);return;}
+    const key=toKey(curYear,curMonth,day);
+    const isT=key===todayKey;
+    const isW=[5,6].includes(i%7);
+    cell.className=`day-cell${isT?" is-today":""}${isW?" is-wknd":""}`;
+    cell.onclick=()=>openAddEvent(key);
+
+    const allEvts=events[key]||[];
+    const visEvts=filterMember===0?allEvts:allEvts.filter(e=>e.memberId===filterMember);
+
+    cell.innerHTML=`<div class="dn-row">
+      <span class="dn">${day}</span>
+      ${visEvts.length?`<span class="dc">${visEvts.length}</span>`:""}
+    </div>`;
+
+    visEvts.slice(0,3).forEach(evt=>{
+      const m=getMember(evt.memberId);
+      const pill=document.createElement("div");
+      pill.className="epill";
+      pill.style.cssText=`background:${m.color}20;border-left:2px solid ${m.color}`;
+      pill.innerHTML=`<span class="eavatar" style="background:${m.color}">${m.initials[0]}</span><span class="elabel">${esc(evt.label)}</span>`;
+      pill.onclick=e=>{e.stopPropagation();openEditEvent(key,allEvts.indexOf(evt));};
+      cell.appendChild(pill);
+    });
+    if(visEvts.length>3){
+      const more=document.createElement("div");
+      more.className="emore";more.textContent=`+${visEvts.length-3} autres`;
+      cell.appendChild(more);
+    }
+    grid.appendChild(cell);
+  });
+}
+
+function renderMemberView(){
+  const mv=document.getElementById("member-view");
+  mv.innerHTML="";
+  const total=daysInMonth(curYear,curMonth);
+  const stats=members.map(m=>{
+    let count=0;
+    for(let d=1;d<=total;d++) count+=(events[toKey(curYear,curMonth,d)]||[]).filter(e=>e.memberId===m.id).length;
+    return{...m,count};
+  }).sort((a,b)=>b.count-a.count);
+
+  stats.forEach(m=>{
+    const days=[];
+    for(let d=1;d<=total;d++){
+      const k=toKey(curYear,curMonth,d);
+      const evts=(events[k]||[]).filter(e=>e.memberId===m.id);
+      if(evts.length) days.push({d,k,evts});
+    }
+    const card=document.createElement("div");
+    card.className="mcard";
+    card.innerHTML=`
+      <div class="mcard-head" style="background:${m.color}15;border-bottom:1px solid ${m.color}30">
+        <div class="mavatar-wrap">
+          <div class="mavatar" style="background:${m.color}">${esc(m.initials)}</div>
+          ${m.leader?`<span class="crown-icon">👑</span>`:""}
+        </div>
+        <div>
+          <div class="mname">${esc(m.name)}${m.leader?`<span class="leader-badge">Chef d'équipe</span>`:""}</div>
+          <div class="mcount">${m.count} activité${m.count!==1?"s":""} ce mois</div>
+        </div>
+      </div>
+      <div class="mcard-body">${
+        !days.length?`<div class="no-act">Aucune activité ce mois</div>`:
+        days.map(({d,evts})=>`
+          <div class="mday-label">${d} ${MONTHS_FR[curMonth]}</div>
+          ${evts.map(e=>`<div class="mevent-row" style="border-left:3px solid ${m.color}">
+            <span style="color:#A0AEC0;margin-right:6px">${esc(e.time||"")}</span>
+            <span>${esc(e.label)}</span>
+            <span style="color:#4B5563;font-size:11px;margin-left:6px">· ${esc(e.type)}</span>
+          </div>`).join("")}`).join("")
+      }</div>`;
+    mv.appendChild(card);
+  });
+}
+
+// ── Event modal ────────────────────────────────────────
+function openAddEvent(key){
+  selDay=key;editIdx=null;selMemberId=members[0]?.id||1;
+  document.getElementById("ev-title").textContent="➕ Nouvelle activité";
+  document.getElementById("ev-date").textContent=key;
+  document.getElementById("form-label").value="";
+  document.getElementById("form-time").value="09:00";
+  buildTypeSelect();buildMemberGrid();buildEventActions();
+  document.getElementById("event-modal").classList.add("open");
+  setTimeout(()=>document.getElementById("form-label").focus(),80);
+}
+
+function openEditEvent(key,idx){
+  if(idx<0||!(events[key]||[])[idx]) return;
+  selDay=key;editIdx=idx;
+  const evt=events[key][idx];
+  selMemberId=evt.memberId;
+  document.getElementById("ev-title").textContent="✏️ Modifier l'activité";
+  document.getElementById("ev-date").textContent=key;
+  document.getElementById("form-label").value=evt.label;
+  document.getElementById("form-time").value=evt.time||"09:00";
+  buildTypeSelect();
+  document.getElementById("form-type").value=evt.type;
+  buildMemberGrid();buildEventActions();
+  document.getElementById("event-modal").classList.add("open");
+}
+
+function buildMemberGrid(){
+  document.getElementById("member-grid").innerHTML=members.map(m=>`
+    <button class="mbtn" onclick="selectMember(${m.id})"
+      style="background:${selMemberId===m.id?m.color:"#1A1D2E"};border-color:${selMemberId===m.id?m.color:"#2D3350"}">
+      ${esc(m.initials)}${m.leader?" 👑":""}
+    </button>`).join("");
+  document.getElementById("sel-member-name").textContent=
+    (()=>{const m=getMember(selMemberId);return m?`→ ${m.name}${m.leader?" (Chef d'équipe)":""}`:"";})();
+}
+
+function selectMember(id){selMemberId=id;buildMemberGrid();}
+
+function buildEventActions(){
+  document.getElementById("ev-actions").innerHTML=`
+    ${editIdx!==null?`<button class="bdel" onclick="deleteEvent()">🗑 Supprimer</button>`:""}
+    <button class="bcan" onclick="closeEventModal()">Annuler</button>
+    <button class="bsave" onclick="saveEvent()">${editIdx!==null?"Mettre à jour":"Ajouter"}</button>`;
+}
+
+function saveEvent(){
+  const label=document.getElementById("form-label").value.trim();
+  if(!label) return;
+  const entry={memberId:selMemberId,type:document.getElementById("form-type").value,label,time:document.getElementById("form-time").value};
+  if(!events[selDay]) events[selDay]=[];
+  if(editIdx!==null) events[selDay][editIdx]=entry;
+  else events[selDay].push(entry);
+  events[selDay].sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+  closeEventModal();render();saveData();
+}
+
+function deleteEvent(){
+  if(editIdx===null) return;
+  events[selDay].splice(editIdx,1);
+  if(!events[selDay].length) delete events[selDay];
+  closeEventModal();render();saveData();
+}
+
+function closeEventModal(){document.getElementById("event-modal").classList.remove("open");}
+
+// ── Settings modal ─────────────────────────────────────
+function openSettings(){
+  switchTab("team");
+  renderTeamList();
+  renderTypesList();
+  document.getElementById("settings-modal").classList.add("open");
+}
+function closeSettings(){
+  document.getElementById("settings-modal").classList.remove("open");
+  buildFilters();buildTypeSelect();render();
+}
+function switchTab(t){
+  document.getElementById("tab-team").style.display  =t==="team" ?"block":"none";
+  document.getElementById("tab-types").style.display =t==="types"?"block":"none";
+  document.getElementById("tab-team-btn").className  ="stab"+(t==="team" ?" active":"");
+  document.getElementById("tab-types-btn").className ="stab"+(t==="types"?" active":"");
+}
+
+// ── Team management ────────────────────────────────────
+function renderTeamList(){
+  document.getElementById("team-list").innerHTML=members.map(m=>`
+    <div class="list-row">
+      <div class="row-avatar-wrap">
+        <div class="row-avatar" style="background:${m.color}">${esc(m.initials)}</div>
+        ${m.leader?`<span class="row-crown">👑</span>`:""}
+      </div>
+      <div class="row-info">
+        <div class="row-name">${esc(m.name)}${m.leader?`<span class="leader-badge">Chef d'équipe</span>`:""}</div>
+        <div class="row-role">${m.leader?"Chef d'équipe":"Membre"}</div>
+      </div>
+      <div class="row-btns">
+        ${m.leader
+          ?`<button class="tbtn demote"  onclick="toggleLeader(${m.id})">Retirer chef</button>`
+          :`<button class="tbtn promote" onclick="toggleLeader(${m.id})">👑 Nommer chef</button>`}
+        <button class="tbtn remove" onclick="removeMember(${m.id})">✕</button>
+      </div>
+    </div>`).join("");
+}
+
+function toggleLeader(id){
+  const m=members.find(x=>x.id===id);
+  if(!m) return;
+  m.leader=!m.leader;
+  renderTeamList();saveData();updateHeader();
+  toast(m.leader?`👑 ${m.name} est maintenant chef d'équipe`:`${m.name} retiré(e) du rôle de chef`);
+}
+
+function checkNewMember(){
+  document.getElementById("add-member-btn").disabled=
+    !document.getElementById("new-member-name").value.trim();
+}
+
+function addMember(){
+  const name=document.getElementById("new-member-name").value.trim();
+  if(!name) return;
+  const nm={id:nextMemberId++,name,color:nextColor(),initials:makeInitials(name),leader:false};
+  members.push(nm);
+  document.getElementById("new-member-name").value="";
+  document.getElementById("add-member-btn").disabled=true;
+  renderTeamList();saveData();toast(`✓ ${name} ajouté(e)`);
+}
+
+function removeMember(id){
+  const m=getMember(id);
+  if(!confirm(`Supprimer ${m.name} de l'équipe ?\n\nSes activités resteront dans le calendrier.`)) return;
+  members=members.filter(x=>x.id!==id);
+  if(filterMember===id) filterMember=0;
+  renderTeamList();saveData();toast(`${m.name} retiré(e) de l'équipe`);
+}
+
+// ── Activity types management ──────────────────────────
+function renderTypesList(){
+  editingTypeIdx=null;
+  document.getElementById("types-list").innerHTML=activityTypes.map((t,i)=>`
+    <div class="list-row" id="at-row-${i}">
+      <span class="row-label">${esc(t)}</span>
+      <div class="row-btns">
+        <button class="tbtn edit"   onclick="startEditType(${i})">✏</button>
+        <button class="tbtn remove" onclick="removeType(${i})">✕</button>
+      </div>
+    </div>`).join("");
+}
+
+function startEditType(i){
+  if(editingTypeIdx!==null) cancelEditType(editingTypeIdx);
+  editingTypeIdx=i;
+  document.getElementById(`at-row-${i}`).innerHTML=`
+    <input class="at-edit-input" id="at-edit-${i}" value="${esc(activityTypes[i])}"
+      onkeydown="if(event.key==='Enter')confirmEditType(${i});if(event.key==='Escape')cancelEditType(${i})"/>
+    <div class="row-btns">
+      <button class="tbtn confirm" onclick="confirmEditType(${i})">✓ Ok</button>
+      <button class="tbtn discard" onclick="cancelEditType(${i})">Annuler</button>
+    </div>`;
+  const inp=document.getElementById(`at-edit-${i}`);
+  inp.focus();inp.select();
+}
+
+function confirmEditType(i){
+  const val=document.getElementById(`at-edit-${i}`).value.trim();
+  if(!val){cancelEditType(i);return;}
+  const old=activityTypes[i];
+  // Update all events using old type name
+  Object.values(events).forEach(arr=>arr.forEach(e=>{if(e.type===old)e.type=val;}));
+  activityTypes[i]=val;
+  editingTypeIdx=null;
+  renderTypesList();saveData();toast(`✓ Type renommé en "${val}"`);
+}
+
+function cancelEditType(i){
+  editingTypeIdx=null;
+  renderTypesList();
+}
+
+function removeType(i){
+  if(activityTypes.length<=1){toast("⚠ Il faut au moins un type d'activité",true);return;}
+  if(!confirm(`Supprimer le type "${activityTypes[i]}" ?\n\nLes activités existantes gardent leur ancienne valeur.`)) return;
+  activityTypes.splice(i,1);
+  renderTypesList();saveData();toast("✓ Type supprimé");
+}
+
+function checkNewType(){
+  document.getElementById("add-type-btn").disabled=
+    !document.getElementById("new-type-name").value.trim();
+}
+
+function addActivityType(){
+  const name=document.getElementById("new-type-name").value.trim();
+  if(!name) return;
+  if(activityTypes.includes(name)){toast("⚠ Ce type existe déjà",true);return;}
+  activityTypes.push(name);
+  document.getElementById("new-type-name").value="";
+  document.getElementById("add-type-btn").disabled=true;
+  renderTypesList();saveData();toast(`✓ "${name}" ajouté`);
+}
+</script>
+</body>
+</html>
